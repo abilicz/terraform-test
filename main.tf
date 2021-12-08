@@ -1,3 +1,6 @@
+data "google_project" "project" {
+}
+
 resource "google_cloud_run_service" "default" {
   name = "cloudrun-srv"
   location = "us-central1"
@@ -19,7 +22,7 @@ resource "google_cloud_run_service" "default" {
           name = "SECRET_ENV_VAR"
           value_from {
             secret_key_ref {
-              name = google_secret_manager_secret.my_secret.secret_id
+              name = google_secret_manager_secret.secret.secret_id
               key = "latest"
             }
           }
@@ -73,16 +76,14 @@ resource "google_project_service" "secretmanager" {
   service  = "secretmanager.googleapis.com"
 }
 
-resource "google_secret_manager_secret" "my_secret" {
-  secret_id = "my_secret"
-  project = google_cloud_run_service.default.project
-
+resource "google_secret_manager_secret" "secret" {
+  secret_id = "secret"
   replication {
     automatic = true
   }
 }
 
-resource "google_secret_manager_secret_version" "my_secret_v1" {
-  secret      = google_secret_manager_secret.my_secret.id
-  secret_data = "my super secret data"
+resource "google_secret_manager_secret_version" "secret-version-data" {
+  secret = google_secret_manager_secret.secret.name
+  secret_data = "secret-data"
 }
