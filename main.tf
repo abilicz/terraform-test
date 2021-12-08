@@ -6,7 +6,7 @@ resource "google_cloud_run_service" "default" {
     spec {
       timeout_seconds = 3600
       containers {
-        image = "us-docker.pkg.dev/cloudrun/container/hello"
+        image = "gcr.io/planning-poker-staging-env/test-image:latest"
         env {
           name = "NODE_ENV"
           value = "staging"
