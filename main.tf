@@ -1,6 +1,22 @@
 data "google_project" "project" {
 }
 
+variable "gcp_service_list" {
+  description ="The list of apis necessary for the project"
+  type = list(string)
+  default = [
+    "secretmanager.googleapis.com",
+    "run.googleapis.com",
+    "containerregistry.googleapis.com"
+  ]
+}
+
+resource "google_project_service" "gcp_services" {
+  for_each = toset(var.gcp_service_list)
+  project = "planning-poker-staging-env"
+  service = each.key
+}
+
 resource "google_cloud_run_service" "default" {
   name = "cloudrun-srv"
   location = "us-central1"
@@ -9,23 +25,21 @@ resource "google_cloud_run_service" "default" {
     spec {
       timeout_seconds = 3600
       containers {
-        image = "gcr.io/planning-poker-staging-env/test-image:latest"
+        image = "gcr.io/planning-poker-staging-env/test-poker:latest"
         env {
           name = "NODE_ENV"
           value = "staging"
         }
-        env {
-          name = "MONGO_URI"
-          value = "mongo-uri"
+          env {
+          name = "APP_BASE_URL"
+          value = "staging-domain"
         }
         env {
-          name = "SECRET_ENV_VAR"
-          value_from {
-            secret_key_ref {
-              name = google_secret_manager_secret.secret.secret_id
-              key = "latest"
-            }
-          }
+          name = "MONGO_URI"
+          value = "mongodb+srv://admin:trN0qEmhSQkRcKai@planning-poker-staging.dv29b.mongodb.net/planning-poker-staging"
+        }
+        ports {
+            container_port = "3005"
         }
       }
     }
@@ -63,27 +77,6 @@ resource "google_cloud_run_service_iam_policy" "noauth" {
   policy_data = data.google_iam_policy.noauth.policy_data
 }
 
-resource "google_secret_manager_secret_iam_member" "secret-access" {
-  secret_id = google_secret_manager_secret.secret.id
-  role      = "roles/secretmanager.secretAccessor"
-  member    = "serviceAccount:${data.google_project.project.number}-compute@developer.gserviceaccount.com"
-  depends_on = [google_secret_manager_secret.secret]
-}
-
-# Enabling Secret Manager API
-resource "google_project_service" "secretmanager" {
-  project = google_cloud_run_service.default.project
-  service  = "secretmanager.googleapis.com"
-}
-
-resource "google_secret_manager_secret" "secret" {
-  secret_id = "secret"
-  replication {
-    automatic = true
-  }
-}
-
-resource "google_secret_manager_secret_version" "secret-version-data" {
-  secret = google_secret_manager_secret.secret.name
-  secret_data = "secret-data"
+output "cloud_run_url" {
+  value = "${google_cloud_run_service.default.status[0].url}"
 }
