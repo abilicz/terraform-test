@@ -26,6 +26,15 @@ resource "google_cloud_run_service" "default" {
       timeout_seconds = 3600
       containers {
         image = "gcr.io/planning-poker-staging-env/test-poker:latest"
+        resources {
+          limits = {
+            cpus = 2
+            memory = 40096
+          }
+        }
+        ports {
+          container_port = "3005"
+        }
         env {
           name = "NODE_ENV"
           value = "staging"
@@ -36,10 +45,7 @@ resource "google_cloud_run_service" "default" {
         }
         env {
           name = "MONGO_URI"
-          value = "mongodb+srv://admin:trN0qEmhSQkRcKai@planning-poker-staging.dv29b.mongodb.net/planning-poker-staging"
-        }
-        ports {
-            container_port = "3005"
+          value = "MONGO_URI"
         }
       }
     }
